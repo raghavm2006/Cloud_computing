@@ -1,0 +1,91 @@
+Experiment 1: Load Balancing and Fault Tolerance
+
+Step 1: Create Virtual Machines
+1. Install Ubuntu on VMware Workstation.
+2. Create one main VM.
+3. Clone the main VM twice to create three VMs.
+4. Start all three VMs.
+5. Configure the network adapters so all VMs can communicate.
+
+Step 2: Configure the Backend Servers
+Perform these steps on VM2 and VM3.
+
+i) Update packages
+sudo apt update
+
+ii) Install Apache
+sudo apt install apache2 -y
+
+iii) Enable Apache
+sudo systemctl enable --now apache2
+
+iv) Check Apache status
+sudo systemctl status apache2
+
+Press q to exit the status screen.
+
+Step 3: Set Different Web Pages
+On VM2, run:
+echo '<h1>Backend Server 1 - VM2</h1>' | sudo tee /var/www/html/index.html
+
+On VM3, run:
+echo '<h1>Backend Server 2 - VM3</h1>' | sudo tee /var/www/html/index.html
+
+Restart Apache on both VMs:
+sudo systemctl restart apache2
+
+Step 4: Configure the Load Balancer
+On VM1, install Nginx:
+sudo apt update
+sudo apt install nginx -y
+
+Find the IP addresses of VM2 and VM3:
+ip addr
+
+Edit the Nginx configuration:
+sudo nano /etc/nginx/sites-available/load-balancer
+
+Add the following configuration. Replace the example IP addresses with the actual IP addresses of VM2 and VM3.
+
+upstream backend_servers {
+    server 192.168.1.11:80;
+    server 192.168.1.12:80;
+}
+
+server {
+    listen 80;
+    server_name _;
+
+    location / {
+        proxy_pass http://backend_servers;
+    }
+}
+
+Save using Ctrl+O, press Enter, and exit using Ctrl+X.
+
+Step 5: Enable the Configuration
+sudo ln -s /etc/nginx/sites-available/load-balancer /etc/nginx/sites-enabled/load-balancer
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t
+sudo systemctl enable --now nginx
+sudo systemctl reload nginx
+
+Step 6: Test Load Balancing
+1. Find VM1's IP address:
+   ip addr
+2. Open a browser on the host computer.
+3. Enter:
+   http://VM1-IP-ADDRESS
+4. Refresh the page and observe the backend response.
+
+Step 7: Test Fault Tolerance
+On VM2, stop Apache:
+sudo systemctl stop apache2
+
+Open the load balancer in the browser again:
+http://VM1-IP-ADDRESS
+
+Nginx should retry another backend after detecting a failed request. This basic configuration uses passive failure detection, so the first request during a failure may not succeed.
+
+Restore Apache on VM2:
+sudo systemctl start apache2

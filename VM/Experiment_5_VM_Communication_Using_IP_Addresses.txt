@@ -1,0 +1,68 @@
+Experiment 5: Create Multiple VMs and Make Them Communicate Using Their IP Addresses
+
+Step 1: Create Multiple VMs
+1. Install Ubuntu on VMware Workstation.
+2. Create one main VM.
+3. Clone the main VM to create at least one additional VM.
+4. Start all VMs.
+5. Ensure the VMs use a VMware network that allows communication between them.
+
+Step 2: Find the IP Address of Each VM
+On each VM, open Terminal and run:
+ip addr
+
+If you prefer the ifconfig command, install net-tools:
+sudo apt update
+sudo apt install net-tools -y
+ifconfig
+
+Record each VM's IP address.
+
+Step 3: Check Connectivity
+From VM1, ping VM2 using its actual IP address:
+ping -c 4 VM2-IP-ADDRESS
+
+From VM2, ping VM1:
+ping -c 4 VM1-IP-ADDRESS
+
+If the ping succeeds, the VMs can communicate over the network. Some firewall settings may block ping even when other services work.
+
+Step 4: Install Apache for an HTTP Test
+On VM2, run:
+sudo apt update
+sudo apt install apache2 -y
+sudo systemctl enable --now apache2
+
+Step 5: Create a Web Page on VM2
+sudo nano /var/www/html/index.html
+
+Enter:
+<html>
+<body>
+<h1>Welcome to VM2 Web Server</h1>
+<p>This page is accessed using the VM IP address.</p>
+</body>
+</html>
+
+Save using Ctrl+O, press Enter, and exit using Ctrl+X.
+
+Step 6: Test from VM1
+On VM1, run:
+curl http://VM2-IP-ADDRESS
+
+You should see the HTML page returned by VM2.
+
+Step 7: Test in a Browser
+1. Open a browser on the host computer or VM1.
+2. Enter:
+   http://VM2-IP-ADDRESS
+3. Press Enter.
+4. Verify that the VM2 web page appears.
+
+Repeat the same steps with VM3 if available.
+
+Troubleshooting:
+- Confirm the IP addresses and network settings.
+- Ensure the target VM is running.
+- Check Apache using: sudo systemctl status apache2
+- HTTP uses TCP port 80. If a firewall is enabled, allow the port with: sudo ufw allow 80/tcp

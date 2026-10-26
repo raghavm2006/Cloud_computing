@@ -1,0 +1,95 @@
+Experiment 6: Online Examination Portal - Load Balancing and Fault Tolerance
+
+Step 1: Prepare Three Ubuntu VMs
+1. Install Ubuntu on VMware Workstation.
+2. Create one main VM and clone it twice.
+3. Start all three VMs.
+4. Configure the VMware network so the VMs can communicate.
+
+Step 2: Configure VM2 as Exam Server 1
+sudo apt update
+sudo apt install apache2 -y
+sudo systemctl enable --now apache2
+
+Create the page:
+sudo tee /var/www/html/index.html > /dev/null <<'EOF'
+<html>
+<body>
+<h1>Online Examination Portal</h1>
+<p>Exam Server 1 - VM2</p>
+<p>Sample portal page</p>
+</body>
+</html>
+EOF
+
+Step 3: Configure VM3 as Exam Server 2
+sudo apt update
+sudo apt install apache2 -y
+sudo systemctl enable --now apache2
+
+Create the page:
+sudo tee /var/www/html/index.html > /dev/null <<'EOF'
+<html>
+<body>
+<h1>Online Examination Portal</h1>
+<p>Exam Server 2 - VM3</p>
+<p>Sample portal page</p>
+</body>
+</html>
+EOF
+
+Step 4: Configure VM1 as Load Balancer
+Install Nginx:
+sudo apt update
+sudo apt install nginx -y
+
+Find the IP addresses of VM2 and VM3:
+ip addr
+
+Edit the configuration:
+sudo nano /etc/nginx/sites-available/online-exam
+
+Add this configuration, replacing the example IP addresses:
+
+upstream online_exam_servers {
+    server 192.168.1.11:80 max_fails=1 fail_timeout=10s;
+    server 192.168.1.12:80 max_fails=1 fail_timeout=10s;
+}
+
+server {
+    listen 80;
+    server_name _;
+
+    location / {
+        proxy_pass http://online_exam_servers;
+        proxy_next_upstream error timeout http_502 http_503 http_504;
+    }
+}
+
+Save and exit.
+
+Step 5: Enable Nginx Configuration
+sudo ln -s /etc/nginx/sites-available/online-exam /etc/nginx/sites-enabled/online-exam
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t
+sudo systemctl enable --now nginx
+sudo systemctl reload nginx
+
+Step 6: Test the Portal
+1. Find VM1's IP address using:
+   ip addr
+2. Open a browser.
+3. Enter:
+   http://VM1-IP-ADDRESS
+4. Refresh and observe the backend responses.
+
+Step 7: Test Fault Tolerance
+On VM2, stop Apache:
+sudo systemctl stop apache2
+
+Refresh the portal through VM1. Nginx should retry the other backend after a failure is detected. The first request after a failure may fail because this configuration uses passive failure detection.
+
+Restart Apache on VM2:
+sudo systemctl start apache2
+
+Note: This is a demonstration portal. It does not implement authentication, exam storage, or real student submissions.

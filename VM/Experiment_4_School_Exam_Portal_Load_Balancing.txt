@@ -1,0 +1,91 @@
+Experiment 4: School Exam Portal - Load Balancing
+
+Step 1: Create and Start Three VMs
+1. Install Ubuntu on VMware.
+2. Create one main VM and clone it twice.
+3. Start all three VMs.
+4. Ensure they can communicate over the VMware network.
+
+Step 2: Configure VM2
+Update packages:
+sudo apt update
+
+Install Apache:
+sudo apt install apache2 -y
+
+Enable Apache:
+sudo systemctl enable --now apache2
+
+Create the Exam Portal page:
+sudo tee /var/www/html/index.html > /dev/null <<'EOF'
+<html>
+<body>
+<h1>School Exam Portal</h1>
+<p>Exam Server - VM2</p>
+<p>Sample examination page</p>
+</body>
+</html>
+EOF
+
+Step 3: Configure VM3
+Update packages and install Apache:
+sudo apt update
+sudo apt install apache2 -y
+sudo systemctl enable --now apache2
+
+Create the page:
+sudo tee /var/www/html/index.html > /dev/null <<'EOF'
+<html>
+<body>
+<h1>School Exam Portal</h1>
+<p>Exam Server - VM3</p>
+<p>Sample examination page</p>
+</body>
+</html>
+EOF
+
+Step 4: Configure VM1 as Load Balancer
+Install Nginx:
+sudo apt update
+sudo apt install nginx -y
+
+Find VM2 and VM3 IP addresses:
+ip addr
+
+Create the configuration:
+sudo nano /etc/nginx/sites-available/exam-portal
+
+Add the following configuration, replacing the example IP addresses:
+
+upstream exam_servers {
+    server 192.168.1.11:80;
+    server 192.168.1.12:80;
+}
+
+server {
+    listen 80;
+    server_name _;
+
+    location / {
+        proxy_pass http://exam_servers;
+    }
+}
+
+Save and exit.
+
+Step 5: Enable the Configuration
+sudo ln -s /etc/nginx/sites-available/exam-portal /etc/nginx/sites-enabled/exam-portal
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t
+sudo systemctl enable --now nginx
+sudo systemctl reload nginx
+
+Step 6: Test Load Balancing
+1. Find VM1's IP address:
+   ip addr
+2. Open a browser on the host computer.
+3. Enter:
+   http://VM1-IP-ADDRESS
+4. Refresh the page several times and observe the backend server page.
+
+Note: This setup demonstrates HTTP request distribution. It is a basic lab configuration, not a complete secure online examination system.

@@ -1,0 +1,77 @@
+Experiment 3: Perform Logical Server Consolidation
+
+Step 1: Prepare an Ubuntu VM
+1. Install Ubuntu on VMware Workstation.
+2. Start the VM that will host the consolidated applications.
+3. Open the Ubuntu Terminal.
+
+Step 2: Update Packages
+sudo apt update
+
+Step 3: Install Apache
+sudo apt install apache2 -y
+
+Enable and start Apache:
+sudo systemctl enable --now apache2
+
+Check the service:
+sudo systemctl status apache2
+
+Press q to exit the status screen.
+
+Step 4: Create Multiple Application Directories
+sudo mkdir -p /var/www/fee
+sudo mkdir -p /var/www/exam
+sudo mkdir -p /var/www/library
+
+Step 5: Create the Application Pages
+Create the Fee Portal page:
+echo '<h1>School Fee Portal - Consolidated Server</h1>' | sudo tee /var/www/fee/index.html
+
+Create the Exam Portal page:
+echo '<h1>School Exam Portal - Consolidated Server</h1>' | sudo tee /var/www/exam/index.html
+
+Create the Library Portal page:
+echo '<h1>Library Portal - Consolidated Server</h1>' | sudo tee /var/www/library/index.html
+
+Step 6: Configure Apache
+sudo nano /etc/apache2/conf-available/consolidated-apps.conf
+
+Add the following configuration:
+
+Alias /fee /var/www/fee
+<Directory /var/www/fee>
+    Require all granted
+</Directory>
+
+Alias /exam /var/www/exam
+<Directory /var/www/exam>
+    Require all granted
+</Directory>
+
+Alias /library /var/www/library
+<Directory /var/www/library>
+    Require all granted
+</Directory>
+
+Save using Ctrl+O, press Enter, and exit using Ctrl+X.
+
+Step 7: Enable the Configuration
+sudo a2enconf consolidated-apps
+sudo apache2ctl configtest
+sudo systemctl restart apache2
+
+Step 8: Test the Applications
+Find the VM's IP address:
+ip addr
+
+Open these URLs in a browser, replacing VM-IP-ADDRESS with the actual address:
+http://VM-IP-ADDRESS/fee/
+http://VM-IP-ADDRESS/exam/
+http://VM-IP-ADDRESS/library/
+
+Step 9: Observe Consolidation
+1. Three logical applications are hosted on one Ubuntu VM.
+2. All applications use the same Apache service.
+3. This demonstrates logical server consolidation.
+4. This exercise does not automatically migrate workloads or shut down other VMs.

@@ -1,0 +1,93 @@
+Experiment 7: Client-Server Communication and Load Balancer
+
+Step 1: Create Three Ubuntu VMs
+1. Install Ubuntu on VMware Workstation.
+2. Create one main VM and clone it twice.
+3. Start all three VMs.
+4. Ensure all VMs can communicate using their IP addresses.
+
+VM1 will be the load balancer.
+VM2 and VM3 will be backend web servers.
+
+Step 2: Configure VM2
+sudo apt update
+sudo apt install apache2 -y
+sudo systemctl enable --now apache2
+
+Set the page:
+echo '<h1>Response from Backend Server VM2</h1>' | sudo tee /var/www/html/index.html
+
+Step 3: Configure VM3
+sudo apt update
+sudo apt install apache2 -y
+sudo systemctl enable --now apache2
+
+Set the page:
+echo '<h1>Response from Backend Server VM3</h1>' | sudo tee /var/www/html/index.html
+
+Step 4: Configure the Load Balancer on VM1
+sudo apt update
+sudo apt install nginx -y
+
+Find VM2 and VM3 IP addresses:
+ip addr
+
+Create the configuration:
+sudo nano /etc/nginx/sites-available/client-server-lb
+
+Add the following, replacing example IP addresses with the actual addresses:
+
+upstream application_servers {
+    server 192.168.1.11:80;
+    server 192.168.1.12:80;
+}
+
+server {
+    listen 80;
+    server_name _;
+
+    location / {
+        proxy_pass http://application_servers;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+    }
+}
+
+Save using Ctrl+O, press Enter, and exit using Ctrl+X.
+
+Step 5: Enable the Load Balancer
+sudo ln -s /etc/nginx/sites-available/client-server-lb /etc/nginx/sites-enabled/client-server-lb
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t
+sudo systemctl enable --now nginx
+sudo systemctl reload nginx
+
+Step 6: Test Client-Server Communication
+Find VM1's IP address:
+ip addr
+
+From VM2, VM3, or the host computer, run:
+curl http://VM1-IP-ADDRESS
+
+Alternatively, open a browser and enter:
+http://VM1-IP-ADDRESS
+
+Step 7: Verify Load Balancing
+1. Send multiple requests to VM1.
+2. Observe the page returned by the backend.
+3. Refresh the browser or run curl repeatedly.
+4. Requests should be distributed between VM2 and VM3.
+
+Step 8: Troubleshooting
+Check Nginx:
+sudo systemctl status nginx
+sudo nginx -t
+
+Check Apache on each backend:
+sudo systemctl status apache2
+
+Test each backend directly:
+curl http://VM2-IP-ADDRESS
+curl http://VM3-IP-ADDRESS
+
+Make sure that the IP addresses in the Nginx configuration match the actual VM addresses.

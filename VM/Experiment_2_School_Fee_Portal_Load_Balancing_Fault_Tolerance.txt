@@ -1,0 +1,101 @@
+Experiment 2: School Fee Portal Application - Load Balancing and Fault Tolerance
+
+Step 1: Prepare Three Ubuntu VMs
+1. Create one main Ubuntu VM in VMware.
+2. Clone it twice.
+3. Start VM1, VM2, and VM3.
+4. Make sure all VMs can communicate over the VMware network.
+
+Step 2: Configure the Fee Servers
+Perform the following steps on VM2 and VM3.
+
+i) Update packages
+sudo apt update
+
+ii) Install Apache
+sudo apt install apache2 -y
+
+iii) Enable Apache
+sudo systemctl enable --now apache2
+
+Step 3: Create the School Fee Portal Page
+
+On VM2, run:
+sudo tee /var/www/html/index.html > /dev/null <<'EOF'
+<html>
+<body>
+<h1>School Fee Portal</h1>
+<p>Fee Server 1 - VM2</p>
+<p>Demonstration only. No real payment is processed.</p>
+</body>
+</html>
+EOF
+
+On VM3, run:
+sudo tee /var/www/html/index.html > /dev/null <<'EOF'
+<html>
+<body>
+<h1>School Fee Portal</h1>
+<p>Fee Server 2 - VM3</p>
+<p>Demonstration only. No real payment is processed.</p>
+</body>
+</html>
+EOF
+
+Restart Apache on both VMs:
+sudo systemctl restart apache2
+
+Step 4: Configure VM1 as the Load Balancer
+On VM1, install Nginx:
+sudo apt update
+sudo apt install nginx -y
+
+Find the IP addresses of VM2 and VM3:
+ip addr
+
+Edit the configuration:
+sudo nano /etc/nginx/sites-available/fee-portal
+
+Add this configuration, replacing the example IP addresses.
+
+upstream fee_servers {
+    server 192.168.1.11:80;
+    server 192.168.1.12:80;
+}
+
+server {
+    listen 80;
+    server_name _;
+
+    location / {
+        proxy_pass http://fee_servers;
+    }
+}
+
+Save and exit the editor.
+
+Step 5: Enable Nginx
+sudo ln -s /etc/nginx/sites-available/fee-portal /etc/nginx/sites-enabled/fee-portal
+sudo rm -f /etc/nginx/sites-enabled/default
+sudo nginx -t
+sudo systemctl enable --now nginx
+sudo systemctl reload nginx
+
+Step 6: Test the Fee Portal
+1. Find VM1's IP address:
+   ip addr
+2. Open a browser on the host computer.
+3. Enter:
+   http://VM1-IP-ADDRESS
+4. Refresh the page to observe responses from the backend servers.
+
+Step 7: Test Fault Tolerance
+On VM2, run:
+sudo systemctl stop apache2
+
+Refresh the portal using VM1's IP address. Nginx may need to detect the failed backend before routing requests to VM3.
+
+Restore VM2:
+sudo systemctl start apache2
+
+Note: This is a sample fee portal for load-balancing practice and does not collect or process actual fees.
